@@ -14,6 +14,29 @@ pub enum PieceType {
     King,
 }
 
+impl Iterator for PieceType {
+    type Item = PieceType;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use PieceType::*;
+        match self {
+            Pawn => Some(Knight),
+            Knight => Some(Bishop),
+            Bishop => Some(Rook),
+            Rook => Some(Queen),
+            Queen => Some(King),
+            King => None,
+        }
+    }
+}
+
+impl PieceType {
+    pub fn all() -> impl Iterator<Item = PieceType> {
+        use PieceType::*;
+        [Pawn, Knight, Bishop, Rook, Queen, King].iter().copied()
+    }
+}
+
 pub enum PieceIndices {
     WhitePawn = 0,
     WhiteKnight = 1,
@@ -83,6 +106,10 @@ impl BitBoard {
 
         self.piece_bb[get_piece_index(*pice_type, *color)] &= !from_mask;
         self.piece_bb[get_piece_index(*pice_type, *color)] |= to_mask;
+    }
+
+    pub fn get_piece_bb(&self, piece: PieceType, color: Color) -> u64 {
+        self.piece_bb[get_piece_index(piece, color)]
     }
 
     pub fn get_pawns(&self, color: Color) -> u64 {
