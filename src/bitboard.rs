@@ -60,7 +60,6 @@ pub fn get_piece_index(piece: PieceType, color: Color) -> usize {
         PieceType::Rook => PieceIndices::WhiteRook as usize + color as usize,
         PieceType::Queen => PieceIndices::WhiteQueen as usize + color as usize,
         PieceType::King => PieceIndices::WhiteKing as usize + color as usize,
-        _ => panic!("Invalid piece type"),
     }
 }
 

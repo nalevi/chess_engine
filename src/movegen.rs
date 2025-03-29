@@ -43,7 +43,7 @@ pub fn move_gen(bit_board: &mut BitBoard, color: Color) {
     pseudo_move(bit_board, random_move);
 }
 
-fn get_valid_moves(moves: &[Move], bit_board: &BitBoard, color: Color) -> Vec<Move> {
+fn get_valid_moves(_moves: &[Move], _bit_board: &BitBoard, _color: Color) -> Vec<Move> {
     let valid_moves = Vec::new();
 
     // TODO: Implement the logic to filter valid moves
@@ -180,10 +180,49 @@ fn get_diagonal_moves(from: u8) -> Vec<u8> {
     let directions = [7, 9, -7, -9];
 
     for &dir in &directions {
-        let mut to = from as i8 + dir;
-        while (to >= 0 && to < 64) && (to % 8 != 0) && (to % 8 != 7) {
-            moves.push(to as u8);
+        let mut to = from as i8;
+        while to >= 0 && to < 64 {
+            if to % 8 == 0 && (dir == 7 || dir == -9) || to % 8 == 7 && (dir == 9 || dir == -7) {
+                break; // Prevent wrapping around the board
+            }
+
+            if to < 8 && dir < 0 {
+                break; // Prevent moving off the board
+            }
+
+            if to > 55 && dir > 0 {
+                break; // Prevent moving off the board
+            }
+
             to += dir;
+            moves.push(to as u8);
+        }
+    }
+
+    moves
+}
+
+fn get_sliding_moves(from: u8) -> Vec<u8> {
+    let mut moves = Vec::new();
+    let directions = [1, -1, 8, -8];
+
+    for &dir in &directions {
+        let mut to = from as i8;
+        while to >= 0 && to < 64 {
+            if to % 8 == 0 && dir == -1 || to % 8 == 7 && dir == 1 {
+                break; // Prevent wrapping around the board
+            }
+
+            if to < 8 && dir < 0 {
+                break; // Prevent moving off the board
+            }
+
+            if to > 55 && dir > 0 {
+                break; // Prevent moving off the board
+            }
+
+            to += dir;
+            moves.push(to as u8);
         }
     }
 
@@ -255,7 +294,7 @@ mod tests {
     //         0,
     //         0,
     //         0,
-    //         0,
+    //          0,
     //         0, // black pieces
     //     );
 
@@ -313,4 +352,27 @@ mod tests {
     //     assert_eq!(bitboard.white_king, 0x0000000000000000 | (1 << 52));
     //     assert_eq!(bitboard.white_king & (1 << 60), 0);
     // }
+
+    #[test]
+    fn test_get_diagonal_moves() {
+        // Test from a corner (top-left)
+        let moves = get_diagonal_moves(0);
+        assert_eq!(moves, vec![9, 18, 27, 36, 45, 54, 63]);
+
+        // Test from a corner (bottom-right)
+        let moves = get_diagonal_moves(63);
+        assert_eq!(moves, vec![54, 45, 36, 27, 18, 9, 0]);
+
+        // Test from the center of the board
+        let moves = get_diagonal_moves(27);
+        assert_eq!(moves, vec![34, 41, 48, 36, 45, 54, 63, 20, 13, 6, 18, 9, 0]);
+
+        // Test from an edge (left edge, not corner)
+        let moves = get_diagonal_moves(8);
+        assert_eq!(moves, vec![17, 26, 35, 44, 53, 62, 1]);
+
+        // Test from an edge (right edge, not corner)
+        let moves = get_diagonal_moves(15);
+        assert_eq!(moves, vec![22, 29, 36, 43, 50, 57, 6]);
+    }
 }
