@@ -1,5 +1,6 @@
 mod bitboard;
 mod game_service;
+mod uci;
 
 fn main() {
     println!("Hello, chess enthusiastic!");
@@ -8,5 +9,20 @@ fn main() {
     let board = game_service::init_game();
     println!("Game initialized!");
 
-    println!("BitBoard in FEN format: {:?}", board);
+    let mut uci = uci::Uci::new();
+    uci.start();
+
+    loop {
+        let mut input = String::new();
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+        let input = input.trim();
+
+        if input == "quit" {
+            break;
+        } else {
+            uci.receive(input);
+        }
+    }
 }
