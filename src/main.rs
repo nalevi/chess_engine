@@ -1,6 +1,5 @@
-mod bitboard;
-mod game_service;
-mod uci;
+use chess_engine::game_service;
+use chess_engine::uci;
 
 fn main() {
     println!("Hello, chess enthusiastic!");

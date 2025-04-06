@@ -154,7 +154,6 @@ impl Uci {
 
     pub fn start(&mut self) {
         self.reset();
-        println!("UCI engine started");
     }
 
     pub fn init_options(&mut self) {
