@@ -17,11 +17,10 @@ fn main() {
             .read_line(&mut input)
             .expect("Failed to read line");
         let input = input.trim();
+        uci.receive(input);
 
         if input == "quit" {
             break;
-        } else {
-            uci.receive(input);
         }
     }
 }

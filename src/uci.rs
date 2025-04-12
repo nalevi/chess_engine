@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 enum UciOptionType {
     Check,
     Spin,
@@ -7,17 +8,6 @@ enum UciOptionType {
 }
 
 impl UciOptionType {
-    fn from_str(s: &str) -> Option<UciOptionType> {
-        match s {
-            "check" => Some(UciOptionType::Check),
-            "spin" => Some(UciOptionType::Spin),
-            "string" => Some(UciOptionType::String),
-            "button" => Some(UciOptionType::Button),
-            "combo" => Some(UciOptionType::Combo),
-            _ => None,
-        }
-    }
-
     fn to_str(&self) -> &str {
         match self {
             UciOptionType::Check => "check",
@@ -126,16 +116,6 @@ pub struct Uci {
     id: UciId,
 }
 
-// pub enum EngineToGuiCommand {
-//     Id,
-//     UciOk,
-//     ReadyOk,
-//     BestMove",
-//     Info = "info",
-//     Registration = "registration",
-//     Option = "option",
-// }
-
 impl Uci {
     pub fn new() -> Self {
         Uci {
@@ -228,18 +208,22 @@ impl Uci {
     }
 
     pub fn receive(&mut self, command: &str) {
+        if self.is_debug {
+            self.send_info(&format!("string {}", command));
+        }
         match command {
             "uci" => self.handle_uci(),
-            "isready" => self.is_ready = true,
-            "quit" => self.is_quit = true,
-            "go" => self.is_go = true,
-            "stop" => self.is_stop = true,
-            "position" => self.is_position = true,
-            "ucinewgame" => self.is_uci_new_game = true,
-            "debug" => self.is_debug = true,
-            "ponderhit" => {}
-            "register" => {}
-            "setoption" => {}
+            "isready" => self.handle_isready(),
+            "quit" => self.handle_quit(),
+            //"go" => self.is_go = true,
+            //"stop" => self.is_stop = true,
+            //"position" => self.is_position = true,
+            //"ucinewgame" => self.is_uci_new_game = true,
+            "debug on" => self.is_debug = true,
+            "debug off" => self.is_debug = false,
+            //"ponderhit" => {}
+            s if s.contains("register") => self.handle_register(s),
+            s if s.contains("setoption") => self.handle_setoption(s),
             _ => {}
         }
     }
@@ -248,10 +232,20 @@ impl Uci {
         println!("{}", response);
     }
 
+    pub fn send_info(&self, info_string: &str) {
+        let info = format!("info {}", info_string);
+        self.send(&info);
+    }
+
     fn send_options(&self) {
         for option in &self.options {
             self.send(&option.to_string());
         }
+    }
+
+    fn handle_quit(&mut self) {
+        self.is_quit = true;
+        // TODO: Handle quit command
     }
 
     pub fn handle_uci(&mut self) {
@@ -262,5 +256,58 @@ impl Uci {
         self.send_options();
 
         self.send("uciok");
+        self.is_ready = true;
+    }
+
+    // handles the setoption command: setoption name <name> value <value>
+    fn handle_setoption(&mut self, set_str: &str) {
+        let parts: Vec<&str> = set_str.split_whitespace().collect();
+        if parts.len() < 5 {
+            return;
+        }
+
+        let name = parts[2];
+        let value = parts[4];
+
+        for option in &mut self.options {
+            if option.name.to_lowercase() == name.to_lowercase() {
+                if option.type_ == UciOptionType::Button {
+                    // TODO: handle button type
+                } else {
+                    option.value = value.to_owned();
+                    break;
+                }
+            }
+        }
+    }
+
+    fn handle_isready(&mut self) {
+        if self.is_ready {
+            self.send("readyok");
+        }
+    }
+
+    fn handle_register(&mut self, cmd_str: &str) {
+        let mut iter = cmd_str.split_whitespace().skip(1);
+
+        let mut name_val: String = String::new();
+        let mut code_val: String = String::new();
+        let val = iter.next();
+        if val == Some("name") {
+            while let Some(name) = iter.next() {
+                if name == "code" {
+                    name_val = name_val.trim().to_string();
+
+                    code_val = iter.next().unwrap_or("").to_string();
+                    break;
+                }
+                name_val += name;
+                name_val += " ";
+            }
+        }
+
+        // TODO: do something with the name and code
+        println!("Name: {}", name_val);
+        println!("Code: {}", code_val);
     }
 }
