@@ -1,20 +1,32 @@
 use crate::bitboard::BitBoard;
 
-pub fn init_game() -> BitBoard {
-    BitBoard::new(
-        0x000000000000FF00, // black pawns   (rank 7)
-        0x0000000000000042, // black knights (b8, g8)
-        0x0000000000000024, // black bishops (c8, f8)
-        0x0000000000000081, // black rooks   (a8, h8)
-        0x0000000000000008, // black queen   (d8)
-        0x0000000000000010,
-        0x00FF000000000000, // white pawns   (rank 2)
-        0x4200000000000000, // white knights (b1, g1)
-        0x2400000000000000, // white bishops (c1, f1)
-        0x8100000000000000, // white rooks   (a1, h1)
-        0x0800000000000000, // white queen   (d1)
-        0x1000000000000000, // black king    (e8)
-    )
+pub struct GameService {
+    board: BitBoard,
+}
+
+impl GameService {
+    pub fn new() -> Self {
+        GameService {
+            board: BitBoard::new(),
+        }
+    }
+
+    pub fn get_board(&self) -> &BitBoard {
+        &self.board
+    }
+
+    pub fn set_board(&mut self, board: BitBoard) {
+        self.board = board;
+    }
+
+    pub fn init_game_from_position(&mut self, fen_str: &str) {
+        // TODO: Implement this function to set the board to a specific position
+        // based on the FEN string or other representation.
+    }
+
+    pub fn reset_game(&mut self) {
+        self.board = BitBoard::new();
+    }
 }
 
 #[cfg(test)]
@@ -23,9 +35,9 @@ mod test {
 
     #[test]
     fn test_initial_position_fen() {
-        let board = init_game();
+        let gs = GameService::new();
         assert_eq!(
-            board.to_fen(),
+            gs.get_board().to_fen(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         );
     }

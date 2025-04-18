@@ -80,22 +80,54 @@ pub struct BitBoard {
 }
 
 impl BitBoard {
-    pub fn new(
-        wp: u64,
-        wn: u64,
-        wb: u64,
-        wr: u64,
-        wq: u64,
-        wk: u64,
-        bp: u64,
-        bn: u64,
-        bb: u64,
-        br: u64,
-        bq: u64,
-        bk: u64,
+    pub fn new() -> Self {
+        BitBoard {
+            piece_bb: [
+                0x000000000000FF00, // white pawns   (rank 7)
+                0x0000000000000042, // white knights (b8, g8)
+                0x0000000000000024, // white bishops (c8, f8)
+                0x0000000000000081, // white rooks   (a8, h8)
+                0x0000000000000008, // white queen   (d8)
+                0x0000000000000010,
+                0x00FF000000000000, // black pawns   (rank 2)
+                0x4200000000000000, // black knights (b1, g1)
+                0x2400000000000000, // black bishops (c1, f1)
+                0x8100000000000000, // black rooks   (a1, h1)
+                0x0800000000000000, // black queen   (d1)
+                0x1000000000000000,
+            ],
+        }
+    }
+
+    pub fn new_from_pieces(
+        white_pawns: u64,
+        white_knights: u64,
+        white_bishops: u64,
+        white_rooks: u64,
+        white_queen: u64,
+        white_king: u64,
+        black_pawns: u64,
+        black_knights: u64,
+        black_bishops: u64,
+        black_rooks: u64,
+        black_queen: u64,
+        black_king: u64,
     ) -> Self {
         BitBoard {
-            piece_bb: [wp, wn, wb, wr, wq, wk, bp, bn, bb, br, bq, bk],
+            piece_bb: [
+                white_pawns,   // 0
+                white_knights, // 1
+                white_bishops, // 2
+                white_rooks,   // 3
+                white_queen,   // 4
+                white_king,    // 5
+                black_pawns,   // 6
+                black_knights, // 7
+                black_bishops, // 8
+                black_rooks,   // 9
+                black_queen,   // 10
+                black_king,    // 11
+            ],
         }
     }
 
@@ -212,21 +244,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_initial_position_fen() {
-        let board = BitBoard::new(
-            0xFF00,             // white pawns
-            0x42,               // white knights
-            0x24,               // white bishops
-            0x81,               // white rooks
-            0x8,                // white queen
-            0x10,               // white king
-            0xFF000000000000,   // black pawns
-            0x4200000000000000, // black knights
-            0x2400000000000000, // black bishops
-            0x8100000000000000, // black rooks
-            0x800000000000000,  // black queen
-            0x1000000000000000, // black king
-        );
+    fn test_initial_position_to_fen() {
+        let board = BitBoard::new();
         assert_eq!(
             board.to_fen(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -235,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_empty_board_fen() {
-        let board = BitBoard::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let board = BitBoard::new_from_pieces(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         assert_eq!(board.to_fen(), "8/8/8/8/8/8/8/8 w KQkq - 0 1");
     }
 
@@ -243,19 +262,19 @@ mod tests {
     #[ignore = "not yet working correctly"]
     fn test_complex_position_fen() {
         // Position with scattered pieces
-        let board = BitBoard::new(
-            0x1000,             // white pawn on d3
-            0x400000,           // white knight on f4
-            0x4000000000,       // white bishop on c6
-            0x1,                // white rook on a1
-            0x800000000000,     // white queen on d7
-            0x10,               // white king on e1
+        let board = BitBoard::new_from_pieces(
             0x10000000000000,   // black pawn on e7
             0x20000000,         // black knight on e5
             0x400000000000,     // black bishop on c7
             0x8000000000000000, // black rook on h8
             0,                  // no black queen
             0x1000000000000000, // black king on e8
+            0x1000,             // white pawn on d3
+            0x400000,           // white knight on f4
+            0x4000000000,       // white bishop on c6
+            0x1,                // white rook on a1
+            0x800000000000,     // white queen on d7
+            0x10,               // white king on e1
         );
         assert_eq!(
             board.to_fen(),

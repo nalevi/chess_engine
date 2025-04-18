@@ -1,3 +1,5 @@
+use crate::game_service::GameService;
+
 #[derive(Debug, PartialEq)]
 enum UciOptionType {
     Check,
@@ -107,13 +109,12 @@ pub struct Uci {
     pub is_ready: bool,
     pub is_quit: bool,
     pub is_go: bool,
-    pub is_position: bool,
     pub is_stop: bool,
     pub is_uci: bool,
-    pub is_uci_new_game: bool,
     pub is_debug: bool,
     options: Vec<UciOptions>,
     id: UciId,
+    game_service: GameService,
 }
 
 impl Uci {
@@ -122,13 +123,12 @@ impl Uci {
             is_ready: false,
             is_quit: false,
             is_go: false,
-            is_position: false,
             is_stop: false,
             is_uci: false,
-            is_uci_new_game: false,
             is_debug: false,
             options: vec![],
             id: UciId::new(),
+            game_service: GameService::new(),
         }
     }
 
@@ -197,14 +197,13 @@ impl Uci {
         self.is_ready = false;
         self.is_quit = false;
         self.is_go = false;
-        self.is_position = false;
         self.is_stop = false;
         self.is_uci = false;
-        self.is_uci_new_game = false;
         self.is_debug = false;
 
         self.options.clear();
         self.init_options();
+        self.game_service.reset_game();
     }
 
     pub fn receive(&mut self, command: &str) {
@@ -217,8 +216,8 @@ impl Uci {
             "quit" => self.handle_quit(),
             //"go" => self.is_go = true,
             //"stop" => self.is_stop = true,
-            //"position" => self.is_position = true,
-            //"ucinewgame" => self.is_uci_new_game = true,
+            "position" => self.handle_position(command),
+            "ucinewgame" => self.handle_newgame(),
             "debug on" => self.is_debug = true,
             "debug off" => self.is_debug = false,
             //"ponderhit" => {}
@@ -288,6 +287,10 @@ impl Uci {
     }
 
     fn handle_register(&mut self, cmd_str: &str) {
+        if cmd_str.contains("later") {
+            return;
+        }
+
         let mut iter = cmd_str.split_whitespace().skip(1);
 
         let mut name_val: String = String::new();
@@ -309,5 +312,35 @@ impl Uci {
         // TODO: do something with the name and code
         println!("Name: {}", name_val);
         println!("Code: {}", code_val);
+    }
+
+    fn handle_newgame(&mut self) {
+        self.is_ready = false;
+        self.game_service.reset_game();
+        self.is_ready = true;
+    }
+
+    fn handle_position(&mut self, cmd_str: &str) {
+        self.is_ready = false;
+
+        let mut iter = cmd_str.split_whitespace().skip(1);
+        let token = iter.next();
+
+        if token == Some("startpos") {
+            self.game_service.reset_game();
+        } else if token == Some("fen") {
+            self.game_service.init_game_from_position(token.unwrap());
+        }
+
+        // skip the "moves" token
+        let _ = iter.next();
+        let mut moves = Vec::new();
+        for move_str in iter {
+            moves.push(move_str.to_string());
+        }
+
+        // TODO: execute moves on the board
+
+        self.is_ready = true;
     }
 }
