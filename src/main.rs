@@ -1,7 +1,9 @@
 use chess_engine::uci;
+use log::info;
 
 fn main() {
-    println!("Hello, chess enthusiastic!");
+    env_logger::Builder::from_env("RUST_LOG").init();
+    info!("Hello, chess enthusiastic!");
 
     let mut uci = uci::Uci::new();
     uci.start();

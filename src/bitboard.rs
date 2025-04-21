@@ -1,3 +1,5 @@
+use log::debug;
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum Color {
     White = 0,
@@ -64,23 +66,14 @@ pub fn get_piece_index(piece: PieceType, color: Color) -> usize {
 }
 
 pub struct BitBoard {
-    // white_pawns: u64,
-    // white_knights: u64,
-    // white_bishops: u64,
-    // white_rooks: u64,
-    // white_queen: u64,
-    // white_king: u64,
-    // black_pawns: u64,
-    // black_knights: u64,
-    // black_bishops: u64,
-    // black_rooks: u64,
-    // black_queen: u64,
-    // black_king: u64,
     piece_bb: [u64; 12],
+    to_move: Color,
+    castling_rights: u8,
 }
 
 impl BitBoard {
     pub fn new() -> Self {
+        debug!("Creating a new BitBoard");
         BitBoard {
             piece_bb: [
                 0x000000000000FF00, // white pawns   (rank 7)
@@ -96,6 +89,8 @@ impl BitBoard {
                 0x0800000000000000, // black queen   (d1)
                 0x1000000000000000,
             ],
+            to_move: Color::White,
+            castling_rights: 0b1111, // KQkq
         }
     }
 
@@ -112,6 +107,8 @@ impl BitBoard {
         black_rooks: u64,
         black_queen: u64,
         black_king: u64,
+        to_move: Color,
+        castling_rights: u8,
     ) -> Self {
         BitBoard {
             piece_bb: [
@@ -128,6 +125,8 @@ impl BitBoard {
                 black_queen,   // 10
                 black_king,    // 11
             ],
+            to_move,
+            castling_rights,
         }
     }
 
@@ -231,6 +230,10 @@ impl BitBoard {
         fen.push_str(" w KQkq - 0 1");
         fen
     }
+
+    pub fn from_fen(&mut self, fen_str: &str) {
+        // TODO:
+    }
 }
 
 impl std::fmt::Debug for BitBoard {
@@ -254,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_empty_board_fen() {
-        let board = BitBoard::new_from_pieces(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let board = BitBoard::new_from_pieces(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Color::White, 0);
         assert_eq!(board.to_fen(), "8/8/8/8/8/8/8/8 w KQkq - 0 1");
     }
 
@@ -275,6 +278,8 @@ mod tests {
             0x1,                // white rook on a1
             0x800000000000,     // white queen on d7
             0x10,               // white king on e1
+            Color::White,       // white to move
+            0b1111,             // all castling rights
         );
         assert_eq!(
             board.to_fen(),

@@ -250,8 +250,19 @@ mod tests {
     fn test_pseudo_move_whitepawn_forward() {
         let mut bitboard = BitBoard::new_from_pieces(
             0xFF00, // white pawns
-            0, 0, 0, 0, 0, // other white pieces
-            0, 0, 0, 0, 0, 0, // black pieces
+            0,
+            0,
+            0,
+            0,
+            0, // other white pieces
+            0,
+            0,
+            0,
+            0,
+            0,
+            0, // black pieces
+            Color::Black,
+            0,
         );
 
         let mv = Move::new(8, 16, PieceType::Pawn, Color::White);
@@ -274,6 +285,8 @@ mod tests {
             0,
             0,
             0, // black pieces
+            Color::Black,
+            0,
         );
         let mv = Move::new(57, 42, PieceType::Knight, Color::Black);
         pseudo_move(&mut bitboard, &mv);

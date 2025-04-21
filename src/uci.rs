@@ -203,7 +203,7 @@ impl Uci {
 
         self.options.clear();
         self.init_options();
-        self.game_service.reset_game();
+        //self.game_service.reset_game();
     }
 
     pub fn receive(&mut self, command: &str) {
