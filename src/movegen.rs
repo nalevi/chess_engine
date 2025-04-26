@@ -3,6 +3,7 @@ use crate::bitboard::Color;
 use crate::bitboard::PieceType;
 use rand::prelude::IndexedRandom;
 
+#[derive(Clone)]
 pub struct Move {
     pub from: u8,
     pub to: u8,
@@ -19,9 +20,46 @@ impl Move {
             color,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        format!("{}{}{}", self.piece.to_string(), self.from, self.to)
+    }
+
+    pub fn from_string(move_str: &str, color: Color) -> Self {
+        let piece = match move_str.chars().nth(0).unwrap() {
+            'N' => PieceType::Knight,
+            'B' => PieceType::Bishop,
+            'R' => PieceType::Rook,
+            'Q' => PieceType::Queen,
+            'K' => PieceType::King,
+            _ => PieceType::Pawn,
+        };
+
+        let mut from_file_idx: usize = 1;
+        let mut from_rank_idx: usize = 2;
+        let mut to_file_idx: usize = 3;
+        let mut to_rank_idx: usize = 4;
+
+        if piece == PieceType::Pawn {
+            from_file_idx -= 1;
+            from_rank_idx -= 1;
+            to_file_idx -= 1;
+            to_rank_idx -= 1;
+        }
+
+        let from_file = move_str.chars().nth(from_file_idx).unwrap() as u8 - b'a';
+        let from_rank = move_str.chars().nth(from_rank_idx).unwrap() as u8;
+        let to_file = move_str.chars().nth(to_file_idx).unwrap() as u8 - b'a';
+        let to_rank = move_str.chars().nth(to_rank_idx).unwrap() as u8;
+
+        let from = from_file + (from_rank - 1) * 8;
+        let to = to_file + (to_rank - 1) * 8;
+
+        Move::new(from, to, piece, color)
+    }
 }
 
-pub fn pseudo_move(bit_board: &mut BitBoard, move_obj: &Move) {
+pub fn execute_move(bit_board: &mut BitBoard, move_obj: &Move) {
     bit_board.move_piece(
         &move_obj.piece,
         &move_obj.color,
@@ -30,17 +68,16 @@ pub fn pseudo_move(bit_board: &mut BitBoard, move_obj: &Move) {
     );
 }
 
-pub fn move_gen(bit_board: &mut BitBoard, color: Color) {
-    let moves = collect_all_possible_moves(bit_board, color);
+pub fn move_gen(bit_board: &mut BitBoard, color: Color) -> Move {
+    let pseudo_moves = collect_all_possible_moves(bit_board, color);
 
-    let valid_moves = get_valid_moves(&moves, bit_board, color);
+    let valid_moves = get_valid_moves(&pseudo_moves, bit_board, color);
 
     // Choose a move (for now, it is just random from the moves array)
     // TODO: Choose the highest value move, when it is implemented
     let random_move = valid_moves.choose(&mut rand::rng()).unwrap();
 
-    // Apply the move to the bitboard
-    pseudo_move(bit_board, random_move);
+    random_move.clone()
 }
 
 fn get_valid_moves(_moves: &[Move], _bit_board: &BitBoard, _color: Color) -> Vec<Move> {
@@ -59,9 +96,9 @@ fn collect_all_possible_moves(bit_board: &BitBoard, color: Color) -> Vec<Move> {
         let piece_positions = get_piece_positions(piece_bb);
 
         for from in piece_positions {
-            let possible_moves = get_possible_moves_for_piece(piece_type, color, from);
+            let pseudo_moves = get_pseudo_moves_for_piece(piece_type, color, from);
 
-            for to in possible_moves {
+            for to in pseudo_moves {
                 moves.push(Move::new(from, to, piece_type, color));
             }
         }
@@ -70,7 +107,7 @@ fn collect_all_possible_moves(bit_board: &BitBoard, color: Color) -> Vec<Move> {
     moves
 }
 
-fn get_possible_moves_for_piece(piece_type: PieceType, color: Color, from: u8) -> Vec<u8> {
+fn get_pseudo_moves_for_piece(piece_type: PieceType, color: Color, from: u8) -> Vec<u8> {
     match piece_type {
         PieceType::Pawn => get_pawn_moves(from, color),
         PieceType::Knight => get_knight_moves(from),
@@ -263,10 +300,13 @@ mod tests {
             0, // black pieces
             Color::Black,
             0,
+            None,
+            0,
+            1,
         );
 
         let mv = Move::new(8, 16, PieceType::Pawn, Color::White);
-        pseudo_move(&mut bitboard, &mv);
+        execute_move(&mut bitboard, &mv);
         assert_eq!(bitboard.get_pawns(Color::White), 0x1FE00);
     }
 
@@ -287,9 +327,12 @@ mod tests {
             0, // black pieces
             Color::Black,
             0,
+            None,
+            0,
+            1,
         );
         let mv = Move::new(57, 42, PieceType::Knight, Color::Black);
-        pseudo_move(&mut bitboard, &mv);
+        execute_move(&mut bitboard, &mv);
 
         assert_eq!(bitboard.get_knights(Color::Black), 0x4000040000000000);
     }
@@ -387,5 +430,59 @@ mod tests {
         // Test from an edge (right edge, not corner)
         let moves = get_diagonal_moves(15);
         assert_eq!(moves, vec![22, 29, 36, 43, 50, 57, 6]);
+    }
+
+    #[test]
+    fn test_move_from_string_pawn() {
+        let mv = Move::from_string("e2e4", Color::White);
+        assert_eq!(mv.from, 12);
+        assert_eq!(mv.to, 28);
+        assert_eq!(mv.piece, PieceType::Pawn);
+        assert_eq!(mv.color, Color::White);
+    }
+
+    #[test]
+    fn test_move_from_string_knight() {
+        let mv = Move::from_string("Nb8c6", Color::Black);
+        assert_eq!(mv.from, 57);
+        assert_eq!(mv.to, 42);
+        assert_eq!(mv.piece, PieceType::Knight);
+        assert_eq!(mv.color, Color::Black);
+    }
+
+    #[test]
+    fn test_move_from_string_bishop() {
+        let mv = Move::from_string("Bf1c4", Color::White);
+        assert_eq!(mv.from, 5);
+        assert_eq!(mv.to, 26);
+        assert_eq!(mv.piece, PieceType::Bishop);
+        assert_eq!(mv.color, Color::White);
+    }
+
+    #[test]
+    fn test_move_from_string_rook() {
+        let mv = Move::from_string("Ra8b8", Color::Black);
+        assert_eq!(mv.from, 56);
+        assert_eq!(mv.to, 57);
+        assert_eq!(mv.piece, PieceType::Rook);
+        assert_eq!(mv.color, Color::Black);
+    }
+
+    #[test]
+    fn test_move_from_string_queen() {
+        let mv = Move::from_string("Qd1h5", Color::White);
+        assert_eq!(mv.from, 3);
+        assert_eq!(mv.to, 39);
+        assert_eq!(mv.piece, PieceType::Queen);
+        assert_eq!(mv.color, Color::White);
+    }
+
+    #[test]
+    fn test_move_from_string_king() {
+        let mv = Move::from_string("Kg1h2", Color::Black);
+        assert_eq!(mv.from, 62);
+        assert_eq!(mv.to, 54);
+        assert_eq!(mv.piece, PieceType::King);
+        assert_eq!(mv.color, Color::Black);
     }
 }

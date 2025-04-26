@@ -203,7 +203,6 @@ impl Uci {
 
         self.options.clear();
         self.init_options();
-        //self.game_service.reset_game();
     }
 
     pub fn receive(&mut self, command: &str) {
@@ -329,7 +328,8 @@ impl Uci {
         if token == Some("startpos") {
             self.game_service.reset_game();
         } else if token == Some("fen") {
-            self.game_service.init_game_from_position(token.unwrap());
+            self.game_service
+                .init_game_from_position(iter.next().unwrap());
         }
 
         // skip the "moves" token
