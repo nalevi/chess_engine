@@ -224,7 +224,8 @@ impl BitBoard {
                 } else {
                     Color::Black
                 };
-                piece_bb[get_piece_index(piece, color)] |= 1u64 << (rank * 8 + file);
+                piece_bb[get_piece_index(piece, color)] |=
+                    1u64 << BitBoard::generate_position_index(file as u8, rank);
                 file += 1;
             }
         }
@@ -271,7 +272,7 @@ impl BitBoard {
                     .map(|d| (d - 1) as u8)
                     .unwrap_or_else(|| panic!("Invalid en_passant string: {}", en_passant));
 
-                en_passant_bb = Some(rank * 8 + file);
+                en_passant_bb = Some(BitBoard::generate_position_index(file, rank));
             } else {
                 en_passant_bb = None;
             }
@@ -438,6 +439,10 @@ impl BitBoard {
         fen.push_str(&self.fullmove_number.to_string());
 
         fen
+    }
+
+    pub fn generate_position_index(file: u8, rank: u8) -> u8 {
+        (rank * 8 + file) as u8
     }
 }
 

@@ -48,12 +48,22 @@ impl Move {
         }
 
         let from_file = move_str.chars().nth(from_file_idx).unwrap() as u8 - b'a';
-        let from_rank = move_str.chars().nth(from_rank_idx).unwrap() as u8;
+        let from_rank = move_str
+            .chars()
+            .nth(from_rank_idx)
+            .unwrap()
+            .to_digit(10)
+            .unwrap() as u8;
         let to_file = move_str.chars().nth(to_file_idx).unwrap() as u8 - b'a';
-        let to_rank = move_str.chars().nth(to_rank_idx).unwrap() as u8;
+        let to_rank = move_str
+            .chars()
+            .nth(to_rank_idx)
+            .unwrap()
+            .to_digit(10)
+            .unwrap() as u8;
 
-        let from = from_file + (from_rank - 1) * 8;
-        let to = to_file + (to_rank - 1) * 8;
+        let from = BitBoard::generate_position_index(from_file, from_rank - 1);
+        let to = BitBoard::generate_position_index(to_file, to_rank - 1);
 
         Move::new(from, to, piece, color)
     }
@@ -337,78 +347,6 @@ mod tests {
         assert_eq!(bitboard.get_knights(Color::Black), 0x4000040000000000);
     }
 
-    // #[test]
-    // fn test_pseudo_move_rook() {
-    //     let mut bitboard = BitBoard::new(
-    //         0,                  // white pawns
-    //         0,                  // white knights
-    //         0,                  // white bishops
-    //         0x8100000000000000, // white rooks
-    //         0,
-    //         0, // other white pieces
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //          0,
-    //         0, // black pieces
-    //     );
-
-    //     let mv = Move::new(63, 55, PieceType::Rook, Color::White);
-    //     pseudo_move(&mut bitboard, &mv);
-
-    //     assert_eq!(bitboard.white_rooks, 0x8000000000000000 | (1 << 55));
-    //     assert_eq!(bitboard.white_rooks & (1 << 63), 0);
-    // }
-
-    // #[test]
-    // fn test_pseudo_move_queen() {
-    //     let mut bitboard = BitBoard::new(
-    //         0,                  // white pawns
-    //         0,                  // white knights
-    //         0,                  // white bishops
-    //         0,                  // white rooks
-    //         0x0800000000000000, // white queen
-    //         0,                  // white king
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0, // black pieces
-    //     );
-
-    //     let mv = Move::new(59, 51, PieceType::Queen, Color::White);
-    //     pseudo_move(&mut bitboard, &mv);
-
-    //     assert_eq!(bitboard.white_queen, 0x0000000000000000 | (1 << 51));
-    //     assert_eq!(bitboard.white_queen & (1 << 59), 0);
-    // }
-
-    // #[test]
-    // fn test_pseudo_move_king() {
-    //     let mut bitboard = BitBoard::new(
-    //         0,                  // white pawns
-    //         0,                  // white knights
-    //         0,                  // white bishops
-    //         0,                  // white rooks
-    //         0,                  // white queen
-    //         0x1000000000000000, // white king
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0,
-    //         0, // black pieces
-    //     );
-
-    //     let mv = Move::new(60, 52, PieceType::King, Color::White);
-    //     pseudo_move(&mut bitboard, &mv);
-
-    //     assert_eq!(bitboard.white_king, 0x0000000000000000 | (1 << 52));
-    //     assert_eq!(bitboard.white_king & (1 << 60), 0);
-    // }
-
     #[test]
     fn test_get_diagonal_moves() {
         // Test from a corner (top-left)
@@ -480,8 +418,8 @@ mod tests {
     #[test]
     fn test_move_from_string_king() {
         let mv = Move::from_string("Kg1h2", Color::Black);
-        assert_eq!(mv.from, 62);
-        assert_eq!(mv.to, 54);
+        assert_eq!(mv.from, 6);
+        assert_eq!(mv.to, 15);
         assert_eq!(mv.piece, PieceType::King);
         assert_eq!(mv.color, Color::Black);
     }
