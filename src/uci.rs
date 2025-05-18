@@ -339,7 +339,7 @@ impl Uci {
             moves.push(move_str.to_string());
         }
 
-        // TODO: execute moves on the board
+        self.game_service.feed_moves_to_game_board(moves);
 
         self.is_ready = true;
     }

@@ -332,7 +332,7 @@ impl BitBoard {
         self.piece_bb[get_piece_index(PieceType::King, color)]
     }
 
-    fn get_piece_at_square(&self, square: u32) -> Option<char> {
+    pub fn get_piece_at_square(&self, square: u32) -> Option<char> {
         let mask = 1u64 << square;
 
         if self.piece_bb[PieceIndices::WhitePawn as usize] & mask != 0 {
