@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::debug;
+use log::{debug, trace};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Color {
@@ -54,7 +54,7 @@ impl PieceType {
     }
 
     pub fn from_char(c: char) -> Option<PieceType> {
-        match c {
+        match c.to_uppercase().next().unwrap() {
             'P' => Some(PieceType::Pawn),
             'N' => Some(PieceType::Knight),
             'B' => Some(PieceType::Bishop),
@@ -302,6 +302,13 @@ impl BitBoard {
 
         self.piece_bb[get_piece_index(*pice_type, *color)] &= !from_mask;
         self.piece_bb[get_piece_index(*pice_type, *color)] |= to_mask;
+
+        if color == &Color::White {
+            self.to_move = Color::Black;
+        } else {
+            self.to_move = Color::White;
+            self.fullmove_number += 1;
+        }
     }
 
     pub fn get_piece_bb(&self, piece: PieceType, color: Color) -> u64 {
@@ -381,7 +388,7 @@ impl BitBoard {
                 match self.get_piece_at_square(square) {
                     Some(piece) => {
                         BitBoard::flush_empty_squares(&mut empty_count, &mut fen);
-                        debug!("Piece at square {}: {}", square, piece);
+                        trace!("Piece at square {}: {}", square, piece);
                         fen.push(piece);
                     }
                     None => empty_count += 1,

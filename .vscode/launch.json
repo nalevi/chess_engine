@@ -1,0 +1,119 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "moduleName",
+      "type": "promptString",
+      "description": "Enter the module name (e.g., chess_engine)",
+      "default": "chess_engine"
+    },
+    {
+      "id": "testName",
+      "type": "promptString",
+      "description": "Enter the test name (e.g., test_move_generation)",
+      "default": ""
+    }
+  ],
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'chess_engine'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=chess_engine"
+        ],
+        "filter": {
+          "name": "chess_engine",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug specific unit test",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--package=chess_engine",
+          "--lib",
+          "--",
+          "--test=${input:moduleName}::test::${input:testName}",
+        ],
+        "filter": {
+          "name": "chess_engine",
+          "kind": "lib"
+        }
+      },
+      "args": [
+      ],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'chess_engine'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=chess_engine",
+          "--package=chess_engine"
+        ],
+        "filter": {
+          "name": "chess_engine",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'chess_engine'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=chess_engine",
+          "--package=chess_engine"
+        ],
+        "filter": {
+          "name": "chess_engine",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'uci_test'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--test=uci_test",
+          "--package=chess_engine"
+        ],
+        "filter": {
+          "name": "uci_test",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

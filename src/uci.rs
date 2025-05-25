@@ -1,5 +1,7 @@
 use crate::game_service::GameService;
 
+use log::{debug, error};
+
 #[derive(Debug, PartialEq)]
 enum UciOptionType {
     Check,
@@ -215,7 +217,7 @@ impl Uci {
             "quit" => self.handle_quit(),
             //"go" => self.is_go = true,
             //"stop" => self.is_stop = true,
-            "position" => self.handle_position(command),
+            s if s.contains("position") => self.handle_position(s),
             "ucinewgame" => self.handle_newgame(),
             "debug on" => self.is_debug = true,
             "debug off" => self.is_debug = false,
@@ -309,8 +311,7 @@ impl Uci {
         }
 
         // TODO: do something with the name and code
-        println!("Name: {}", name_val);
-        println!("Code: {}", code_val);
+        self.send_info(&format!("string Name: {} Code: {}", name_val, code_val));
     }
 
     fn handle_newgame(&mut self) {
@@ -321,12 +322,12 @@ impl Uci {
 
     fn handle_position(&mut self, cmd_str: &str) {
         self.is_ready = false;
-
         let mut iter = cmd_str.split_whitespace().skip(1);
         let token = iter.next();
 
         if token == Some("startpos") {
             self.game_service.reset_game();
+            debug!("Table reset!");
         } else if token == Some("fen") {
             self.game_service
                 .init_game_from_position(iter.next().unwrap());
@@ -339,7 +340,16 @@ impl Uci {
             moves.push(move_str.to_string());
         }
 
-        self.game_service.feed_moves_to_game_board(moves);
+        debug!("Received moves: {:?}", moves);
+
+        match self.game_service.feed_moves_to_game_board(&moves) {
+            Ok(_) => {
+                debug!("Moves executed successfully");
+            }
+            Err(e) => {
+                error!("Error during moves execution: {:?}", e);
+            }
+        }
 
         self.is_ready = true;
     }
