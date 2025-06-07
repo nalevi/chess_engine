@@ -92,6 +92,7 @@ pub fn get_piece_index(piece: PieceType, color: Color) -> usize {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
 pub struct BitBoard {
     piece_bb: [u64; 12],
     to_move: Color,
@@ -179,6 +180,10 @@ impl BitBoard {
             halfmove_clock,
             fullmove_number,
         }
+    }
+
+    pub fn get_current_color(&self) -> Color {
+        self.to_move
     }
 
     pub fn from_fen(fen_str: &str) -> Self {

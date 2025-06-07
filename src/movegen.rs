@@ -22,7 +22,11 @@ impl Move {
     }
 
     pub fn to_string(&self) -> String {
-        format!("{}{}{}", self.piece.to_string(), self.from, self.to)
+        let from_file = (self.from % 8 + b'a') as char;
+        let from_rank = self.from / 8 + 1;
+        let to_file = (self.to % 8 + b'a') as char;
+        let to_rank = self.to / 8 + 1;
+        format!("{}{}{}{}", from_file, from_rank, to_file, to_rank)
     }
 
     pub fn from_string(move_str: &str, color: Color) -> Self {
@@ -78,10 +82,10 @@ pub fn execute_move(bit_board: &mut BitBoard, move_obj: &Move) {
     );
 }
 
-pub fn move_gen(bit_board: &mut BitBoard, color: Color) -> Move {
-    let pseudo_moves = collect_all_possible_moves(bit_board, color);
+pub fn move_gen(bit_board: &mut BitBoard) -> Move {
+    let pseudo_moves = collect_all_possible_moves(bit_board, bit_board.get_current_color());
 
-    let valid_moves = get_valid_moves(&pseudo_moves, bit_board, color);
+    let valid_moves = get_valid_moves(&pseudo_moves, bit_board, bit_board.get_current_color());
 
     // Choose a move (for now, it is just random from the moves array)
     // TODO: Choose the highest value move, when it is implemented
@@ -91,10 +95,11 @@ pub fn move_gen(bit_board: &mut BitBoard, color: Color) -> Move {
 }
 
 fn get_valid_moves(_moves: &[Move], _bit_board: &BitBoard, _color: Color) -> Vec<Move> {
-    let valid_moves = Vec::new();
+    // let valid_moves = Vec::new();
 
     // TODO: Implement the logic to filter valid moves
-    valid_moves
+    // valid_moves
+    _moves.to_vec() // For now, return all moves as valid
 }
 
 fn collect_all_possible_moves(bit_board: &BitBoard, color: Color) -> Vec<Move> {

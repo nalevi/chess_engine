@@ -1,6 +1,7 @@
-use crate::game_service::GameService;
+use crate::game_service::{GameService, SearchResult};
 
 use log::{debug, error};
+use tokio::runtime::Runtime;
 
 #[derive(Debug, PartialEq)]
 enum UciOptionType {
@@ -111,12 +112,12 @@ pub struct Uci {
     pub is_ready: bool,
     pub is_quit: bool,
     pub is_go: bool,
-    pub is_stop: bool,
     pub is_uci: bool,
     pub is_debug: bool,
     options: Vec<UciOptions>,
     id: UciId,
     game_service: GameService,
+    runtime: Runtime,
 }
 
 impl Uci {
@@ -125,12 +126,12 @@ impl Uci {
             is_ready: false,
             is_quit: false,
             is_go: false,
-            is_stop: false,
             is_uci: false,
             is_debug: false,
             options: vec![],
             id: UciId::new(),
-            game_service: GameService::new(),
+            game_service: GameService::new(1),
+            runtime: Runtime::new().expect("Failed to create Tokio runtime"),
         }
     }
 
@@ -199,7 +200,6 @@ impl Uci {
         self.is_ready = false;
         self.is_quit = false;
         self.is_go = false;
-        self.is_stop = false;
         self.is_uci = false;
         self.is_debug = false;
 
@@ -209,14 +209,14 @@ impl Uci {
 
     pub fn receive(&mut self, command: &str) {
         if self.is_debug {
-            self.send_info(&format!("string {}", command));
+            Self::send_info(&format!("string {}", command));
         }
         match command {
             "uci" => self.handle_uci(),
             "isready" => self.handle_isready(),
             "quit" => self.handle_quit(),
-            //"go" => self.is_go = true,
-            //"stop" => self.is_stop = true,
+            s if s.contains("go") => self.handle_go(s),
+            "stop" => self.handle_stop(),
             s if s.contains("position") => self.handle_position(s),
             "ucinewgame" => self.handle_newgame(),
             "debug on" => self.is_debug = true,
@@ -228,18 +228,18 @@ impl Uci {
         }
     }
 
-    pub fn send(&self, response: &str) {
+    pub fn send(response: &str) {
         println!("{}", response);
     }
 
-    pub fn send_info(&self, info_string: &str) {
+    pub fn send_info(info_string: &str) {
         let info = format!("info {}", info_string);
-        self.send(&info);
+        Self::send(&info);
     }
 
     fn send_options(&self) {
         for option in &self.options {
-            self.send(&option.to_string());
+            Self::send(&option.to_string());
         }
     }
 
@@ -250,12 +250,12 @@ impl Uci {
 
     pub fn handle_uci(&mut self) {
         self.is_uci = true;
-        self.send(format!("id name {}", self.id.name).as_str());
-        self.send(format!("id author {}", self.id.author).as_str());
+        Self::send(format!("id name {}", self.id.name).as_str());
+        Self::send(format!("id author {}", self.id.author).as_str());
 
         self.send_options();
 
-        self.send("uciok");
+        Self::send("uciok");
         self.is_ready = true;
     }
 
@@ -283,7 +283,7 @@ impl Uci {
 
     fn handle_isready(&mut self) {
         if self.is_ready {
-            self.send("readyok");
+            Self::send("readyok");
         }
     }
 
@@ -311,12 +311,18 @@ impl Uci {
         }
 
         // TODO: do something with the name and code
-        self.send_info(&format!("string Name: {} Code: {}", name_val, code_val));
+        Self::send_info(&format!("string Name: {} Code: {}", name_val, code_val));
     }
 
     fn handle_newgame(&mut self) {
         self.is_ready = false;
         self.game_service.reset_game();
+        self.game_service.set_num_threads(
+            self.options
+                .iter()
+                .find(|o| o.name == "Threads")
+                .map_or(1, |o| o.value.parse().unwrap_or(1)),
+        );
         self.is_ready = true;
     }
 
@@ -352,5 +358,61 @@ impl Uci {
         }
 
         self.is_ready = true;
+    }
+
+    fn handle_go(&mut self, cmd_str: &str) {
+        self.is_go = true;
+
+        let mut iter = cmd_str.split_whitespace().skip(1);
+        let token = iter.next();
+        let mut is_infinite = false;
+
+        let mut search_res = SearchResult {
+            depth: 0,
+            score: 0,
+            best_move: String::new(),
+        };
+
+        if token == Some("infinite") {
+            // Handle infinite go
+            is_infinite = true;
+            debug!("go command received with infinite time");
+
+            // TODO: somehow watch the state of stop and go and call stop_search() on stop
+            let info_sender = move |result: SearchResult| {
+                let info = format!(
+                    "score cp {} depth {} pv {}",
+                    result.score, result.depth, result.best_move
+                );
+
+                Self::send_info(&info);
+            };
+
+            let res = self
+                .runtime
+                .block_on(self.game_service.search_moves(info_sender));
+
+            match res {
+                Ok(result) => {
+                    search_res = result;
+                }
+                Err(e) => {
+                    error!("Error during search: {:?}", e);
+                }
+            }
+        } else if token == Some("wtime") || token == Some("btime") {
+            // Handle wtime or btime
+            let time = iter.next().unwrap_or("0");
+            debug!("go command received with time: {}", time);
+        } else {
+            // Handle other go commands
+            debug!("go command received: {}", cmd_str);
+        }
+
+        Self::send(format!("bestmove {}", search_res.best_move).as_str());
+    }
+
+    pub fn handle_stop(&mut self) {
+        self.is_go = false;
     }
 }
