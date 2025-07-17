@@ -37,7 +37,6 @@ pub struct GameService {
     workers: Vec<JoinHandle<()>>,
     result_rx: Option<Receiver<SearchResult>>,
     num_threads: usize,
-    depth: u8,
 }
 
 impl GameService {
@@ -47,7 +46,6 @@ impl GameService {
             workers: Vec::new(),
             result_rx: None,
             num_threads: num_threads as usize,
-            depth: 1,
         }
     }
 
@@ -113,8 +111,13 @@ impl GameService {
         Ok(())
     }
 
-    // Thefunction starts a search for the best move from the current position or from a given set of moves.
-    pub async fn search_moves<F>(&mut self, callback: F) -> Result<SearchResult, GameError>
+    // The function starts a search for the best move from the current position or from a given set of moves.
+    // TODO Refactor this to have a SearchConfig parameter with optional fields.
+    pub async fn search_moves<F>(
+        &mut self,
+        callback: F,
+        depth: u8,
+    ) -> Result<SearchResult, GameError>
     where
         F: Fn(SearchResult) + Send + 'static,
     {
@@ -151,7 +154,7 @@ impl GameService {
                 end_result = result;
 
                 // exit when all depth have been discovered
-                if end_result.depth == self.depth {
+                if end_result.depth == depth {
                     break;
                 }
             }
@@ -159,7 +162,6 @@ impl GameService {
             error!("Result receiver is not initialized");
         }
 
-        // finished calculation ...
         self.stop_search().await;
 
         debug!(

@@ -407,7 +407,7 @@ impl Uci {
 
             let res = self
                 .runtime
-                .block_on(self.game_service.search_moves(info_sender));
+                .block_on(self.game_service.search_moves(info_sender, 1));
 
             match res {
                 Ok(result) => {
@@ -456,7 +456,7 @@ impl Uci {
 
             let res = self
                 .runtime
-                .block_on(self.game_service.search_moves(info_sender));
+                .block_on(self.game_service.search_moves(info_sender, depth));
 
             match res {
                 Ok(result) => {
