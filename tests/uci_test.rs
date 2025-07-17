@@ -27,7 +27,7 @@ where
 
 #[test]
 fn test_given_uci_protocol_when_uci_then_id_options_uciok() {
-    let mut uci = Uci::new();
+    let mut uci = Uci::new("");
 
     let output = capture_stdout(|| {
         uci.start();

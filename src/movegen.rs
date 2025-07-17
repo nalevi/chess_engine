@@ -94,12 +94,20 @@ pub fn move_gen(bit_board: &mut BitBoard) -> Move {
     random_move.clone()
 }
 
-fn get_valid_moves(_moves: &[Move], _bit_board: &BitBoard, _color: Color) -> Vec<Move> {
-    // let valid_moves = Vec::new();
+fn get_valid_moves(moves: &[Move], bit_board: &BitBoard, color: Color) -> Vec<Move> {
+    let mut valid_moves = Vec::new();
 
     // TODO: Implement the logic to filter valid moves
     // valid_moves
-    _moves.to_vec() // For now, return all moves as valid
+
+    for m in moves {
+        if bit_board.get_piece_at_square(m.to as u32).is_none()
+            || bit_board.is_occupied_by_color(m.to as u32, color)
+        {
+            valid_moves.push(m.clone());
+        }
+    }
+    valid_moves // For now, return all moves as valid
 }
 
 fn collect_all_possible_moves(bit_board: &BitBoard, color: Color) -> Vec<Move> {

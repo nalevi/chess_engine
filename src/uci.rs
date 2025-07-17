@@ -118,10 +118,11 @@ pub struct Uci {
     id: UciId,
     game_service: GameService,
     runtime: Runtime,
+    log_path: String,
 }
 
 impl Uci {
-    pub fn new() -> Self {
+    pub fn new(log_file: &str) -> Self {
         Uci {
             is_ready: false,
             is_quit: false,
@@ -132,6 +133,7 @@ impl Uci {
             id: UciId::new(),
             game_service: GameService::new(1),
             runtime: Runtime::new().expect("Failed to create Tokio runtime"),
+            log_path: log_file.to_owned(),
         }
     }
 
@@ -194,6 +196,12 @@ impl Uci {
                 .default_value("")
                 .option_type(UciOptionType::String),
         );
+
+        self.options.push(
+            UciOptions::new("Log file")
+                .default_value(self.log_path.as_str())
+                .option_type(UciOptionType::String),
+        );
     }
 
     pub fn reset(&mut self) {
@@ -208,6 +216,10 @@ impl Uci {
     }
 
     pub fn receive(&mut self, command: &str) {
+        debug!("Received command: {}", command);
+        if command.is_empty() {
+            return;
+        }
         if self.is_debug {
             Self::send_info(&format!("string {}", command));
         }
@@ -335,14 +347,18 @@ impl Uci {
             self.game_service.reset_game();
             debug!("Table reset!");
         } else if token == Some("fen") {
-            self.game_service
-                .init_game_from_position(iter.next().unwrap());
+            let fen_parts: Vec<&str> = iter
+                .by_ref()
+                .take_while(|&token| token != "moves")
+                .collect();
+            let fen_str = fen_parts.join(" ");
+            self.game_service.init_game_from_position(&fen_str);
         }
-
         // skip the "moves" token
-        let _ = iter.next();
+        //let _ = iter.next();
         let mut moves = Vec::new();
         for move_str in iter {
+            debug!("Received move: {}", move_str);
             moves.push(move_str.to_string());
         }
 
@@ -373,20 +389,21 @@ impl Uci {
             best_move: String::new(),
         };
 
+        let info_sender = move |result: SearchResult| {
+            let info = format!(
+                "score cp {} depth {} pv {}",
+                result.score, result.depth, result.best_move
+            );
+
+            Self::send_info(&info);
+        };
+
         if token == Some("infinite") {
             // Handle infinite go
             is_infinite = true;
             debug!("go command received with infinite time");
 
             // TODO: somehow watch the state of stop and go and call stop_search() on stop
-            let info_sender = move |result: SearchResult| {
-                let info = format!(
-                    "score cp {} depth {} pv {}",
-                    result.score, result.depth, result.best_move
-                );
-
-                Self::send_info(&info);
-            };
 
             let res = self
                 .runtime
@@ -400,13 +417,55 @@ impl Uci {
                     error!("Error during search: {:?}", e);
                 }
             }
-        } else if token == Some("wtime") || token == Some("btime") {
-            // Handle wtime or btime
-            let time = iter.next().unwrap_or("0");
-            debug!("go command received with time: {}", time);
         } else {
             // Handle other go commands
             debug!("go command received: {}", cmd_str);
+            let mut depth = 0;
+            let mut time = 0;
+            let mut moves_to_search = 0;
+            let mut nodes = 0;
+
+            while let Some(arg) = iter.next() {
+                match arg {
+                    "depth" => {
+                        depth = iter.next().and_then(|d| d.parse().ok()).unwrap_or(0);
+                    }
+                    "movetime" => {
+                        time = iter.next().and_then(|t| t.parse().ok()).unwrap_or(0);
+                    }
+                    "nodes" => {
+                        nodes = iter.next().and_then(|n| n.parse().ok()).unwrap_or(0);
+                    }
+                    "movestogo" => {
+                        moves_to_search = iter.next().and_then(|m| m.parse().ok()).unwrap_or(0);
+                    }
+                    _ => {}
+                }
+            }
+            if depth > 0 {
+                debug!("Searching with depth: {}", depth);
+            } else if time > 0 {
+                debug!("Searching with time: {} ms", time);
+            } else if nodes > 0 {
+                debug!("Searching with nodes: {}", nodes);
+            } else if moves_to_search > 0 {
+                debug!("Searching with moves to search: {}", moves_to_search);
+            } else {
+                debug!("Searching with default parameters");
+            }
+
+            let res = self
+                .runtime
+                .block_on(self.game_service.search_moves(info_sender));
+
+            match res {
+                Ok(result) => {
+                    search_res = result;
+                }
+                Err(e) => {
+                    error!("Error during search: {:?}", e);
+                }
+            }
         }
 
         Self::send(format!("bestmove {}", search_res.best_move).as_str());

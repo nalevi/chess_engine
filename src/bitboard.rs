@@ -456,6 +456,15 @@ impl BitBoard {
     pub fn generate_position_index(file: u8, rank: u8) -> u8 {
         (rank * 8 + file) as u8
     }
+
+    pub fn is_occupied_by_color(&self, square: u32, color: Color) -> bool {
+        let mask = 1u64 << square;
+        let piece_bb = match color {
+            Color::White => &self.piece_bb[0..6],
+            Color::Black => &self.piece_bb[6..12],
+        };
+        piece_bb.iter().any(|&bb| bb & mask != 0)
+    }
 }
 
 impl std::fmt::Debug for BitBoard {

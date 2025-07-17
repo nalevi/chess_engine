@@ -1,3 +1,5 @@
+use core::error;
+
 use crate::bitboard::BitBoard;
 use crate::bitboard::Color;
 use crate::bitboard::PieceType;
@@ -7,9 +9,6 @@ use log::debug;
 use log::error;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::task::JoinHandle;
-
-use std::result;
-use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct SearchWorker {
@@ -74,6 +73,11 @@ impl GameService {
         let mut color = Color::White;
         for m in moves {
             if m.len() != 4 {
+                return Err(GameError::InvalidMoveFormat);
+            }
+
+            error!("Processing move: {}", m);
+            if !m.is_ascii() {
                 return Err(GameError::InvalidMoveFormat);
             }
             let from_file = m.chars().nth(0).unwrap() as u8 - b'a';
@@ -157,6 +161,11 @@ impl GameService {
 
         // finished calculation ...
         self.stop_search().await;
+
+        debug!(
+            "Search completed with best move: {} at depth {} with score {}",
+            end_result.best_move, end_result.depth, end_result.score
+        );
 
         Ok(end_result)
     }
