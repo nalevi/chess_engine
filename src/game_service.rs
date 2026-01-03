@@ -154,6 +154,7 @@ impl GameService {
                 end_result = result;
 
                 // exit when all depth have been discovered
+                debug!("Depth: {}, Best move: {}", end_result.depth, end_result.best_move);
                 if end_result.depth == depth {
                     break;
                 }

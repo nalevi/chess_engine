@@ -420,7 +420,7 @@ impl Uci {
         } else {
             // Handle other go commands
             debug!("go command received: {}", cmd_str);
-            let mut depth = 0;
+            let mut depth = 1;
             let mut time = 0;
             let mut moves_to_search = 0;
             let mut nodes = 0;
